@@ -1,0 +1,6 @@
+[submodule "vendor/docs"]
+	path = vendor/docs
+	url = https://github.com/JoinColony/docs.git
+[submodule "vendor/colonyJS"]
+	path = vendor/colonyJS
+	url = https://github.com/JoinColony/colonyJS.git
