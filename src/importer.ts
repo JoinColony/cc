@@ -97,7 +97,7 @@ const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
 };
 
 const start = async () => {
-  await weaviate.schema.classDeleter().withClassName('Article').do();
+  // await weaviate.schema.classDeleter().withClassName('Article').do();
   await weaviate.schema.classCreator().withClass(articleSchema).do();
 
   const mds = getMarkdownDescriptors();
