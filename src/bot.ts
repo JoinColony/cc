@@ -20,7 +20,11 @@ client.on('ready', async () => {
 client.on(Events.InteractionCreate, async (interaction: Interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  await handleSlashCommand(client, interaction);
+  try {
+    await handleSlashCommand(client, interaction);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 const handleSlashCommand = async (
@@ -30,11 +34,12 @@ const handleSlashCommand = async (
   const slashCommand =
     commands[interaction.commandName as keyof typeof commands];
   if (!slashCommand) {
-    interaction.reply({ content: 'I have no idea how to handle this command' });
-    return;
+    return interaction.reply({
+      content: 'I have no idea how to handle this command',
+    });
   }
 
-  slashCommand.execute(interaction);
+  return slashCommand.execute(interaction);
 };
 
 client.login(config.token);
