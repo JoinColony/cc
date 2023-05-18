@@ -28,14 +28,22 @@ const articleSchema = {
       modelVersion: '002',
       type: 'text',
     },
-    'qna-openai': {
-      model: 'text-davinci-003',
-      maxTokens: 256,
-      temperature: 0.0,
-      topP: 1,
-      frequencyPenalty: 0.0,
-      presencePenalty: 0.0,
+    'generative-openai': {
+      model: 'gpt-3.5-turbo',
+      maxTokensProperty: 256,
+      temperatureProperty: 0.0,
+      topPProperty: 1,
+      frequencyPenaltyProperty: 0.0,
+      presencePenaltyProperty: 0.0,
     },
+    // 'qna-openai': {
+    //   model: 'text-davinci-003',
+    //   maxTokens: 256,
+    //   temperature: 0.0,
+    //   topP: 1,
+    //   frequencyPenalty: 0.0,
+    //   presencePenalty: 0.0,
+    // },
   },
   properties: [
     {
