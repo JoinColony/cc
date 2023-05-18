@@ -1,16 +1,26 @@
-import { readFileSync } from 'node:fs';
-import { resolve as resolvePath, dirname } from 'node:path';
+import {
+  dirname,
+  resolve as resolvePath,
+  relative as relativePath,
+} from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fg from 'fast-glob';
 
-import { parseMarkdown } from './parse-markdown.ts';
+import { MarkdownDescriptor, readMarkdown } from './markdown.ts';
 import { client as weaviate } from './weaviate.ts';
 
 const FILENAME = fileURLToPath(import.meta.url);
 const DIRNAME = dirname(FILENAME);
 
+export interface DocsDescriptor {
+  id: string;
+  basePath: string;
+  getUrl: (basePath: string, filePath: string) => string;
+}
+
 const articleSchema = {
-  class: 'Article',
-  description: 'A collection of articles',
+  class: 'Doc',
+  description: 'Colony documentation',
   vectorizer: 'text2vec-openai',
   moduleConfig: {
     'text2vec-openai': {
@@ -20,7 +30,7 @@ const articleSchema = {
     },
     'qna-openai': {
       model: 'text-davinci-003',
-      maxTokens: 128,
+      maxTokens: 256,
       temperature: 0.0,
       topP: 1,
       frequencyPenalty: 0.0,
@@ -51,29 +61,61 @@ const articleSchema = {
   ],
 };
 
-const markdown = readFileSync(
-  resolvePath(DIRNAME, '..', 'docs', 'Colony.md'),
-).toString();
+const docs: DocsDescriptor[] = [
+  {
+    id: 'docs',
+    basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
+    getUrl: (basePath, filePath) =>
+      `https://docs.colony.io/${relativePath(basePath, filePath)}`
+        .replace(/index\.md$/, '')
+        .replace(/\.md$/, ''),
+  },
+  {
+    id: 'sdk',
+    basePath: resolvePath(
+      DIRNAME,
+      '..',
+      'vendor',
+      'colonyJS',
+      'packages',
+      'sdk',
+      'docs',
+    ),
+    getUrl: (basePath, filePath) =>
+      `https://docs.colony.io/colonysdk/${relativePath(basePath, filePath)}`
+        .replace(/index\.md$/, '')
+        .replace(/\.md$/, ''),
+  },
+];
+
+const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
+  return docs.flatMap(({ basePath, getUrl }) => {
+    return fg
+      .sync(`${basePath}/**/*.md`)
+      .map((fileName) => readMarkdown(basePath, fileName, getUrl));
+  });
+};
 
 const start = async () => {
   await weaviate.schema.classDeleter().withClassName('Article').do();
   await weaviate.schema.classCreator().withClass(articleSchema).do();
-  const { title, contents } = parseMarkdown(markdown);
 
-  console.log(`Importing ${title} with ${contents.length} chunks...`);
+  const mds = getMarkdownDescriptors();
 
   let batcher = weaviate.batch.objectsBatcher();
 
-  contents.forEach((text, idx) => {
-    batcher = batcher.withObject({
-      class: 'Article',
-      properties: { title, content: text },
+  mds.forEach(({ url, contents, title }) => {
+    contents.forEach((content) => {
+      batcher = batcher.withObject({
+        class: 'Doc',
+        properties: { title, content, url },
+      });
     });
   });
 
   const result = await batcher.do();
 
-  console.log(result[0].result);
+  console.info(result[0].result);
 };
 
 start();

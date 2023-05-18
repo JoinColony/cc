@@ -1,19 +1,28 @@
 import { client as weaviate } from './weaviate.ts';
 
-export const ask = async () => {
+export const ask = async (q: string) => {
   const res = await weaviate.graphql
     .get()
-    .withClassName('Article')
+    .withClassName('Doc')
     // .withFields('title content')
     .withFields(
-      `title content _additional { answer { hasAnswer property result startPosition endPosition } distance }`,
+      `title url _additional { answer { hasAnswer property result startPosition endPosition } distance }`,
     )
     .withAsk({
-      question: 'What is allowedToTransfer?',
+      question: q,
       properties: ['content'],
     })
     .withLimit(1)
     .do();
-  console.log(res.data.Get.Article[0]);
-  // console.log(res.data.Get.Article[0]);
+  if (res?.data?.Get?.Doc && res.data.Get.Doc[0]) {
+    const {
+      _additional: {
+        answer: { result },
+      },
+      url,
+    } = res.data.Get.Doc[0];
+    return `${result.trim()}
+For more info check: ${url}`;
+  }
+  return null;
 };
