@@ -32,15 +32,25 @@ export const commands = {
         return interaction.reply('No question asked.');
       }
       await interaction.deferReply({ ephemeral: true });
-      const reply = await ask(question);
-      if (!reply) {
-        return interaction.editReply(
-          'Could not find an answer to your question',
-        );
+      try {
+        const reply = await ask(question);
+        if (!reply) {
+          return interaction.editReply(
+            'Could not find an answer to your question',
+          );
+        }
+        return interaction.editReply({
+          content: reply,
+        });
+      } catch (e) {
+        /* eslint-disable max-len */
+        console.error(e);
+        return interaction.editReply(`
+❓ You asked: **${question}**
+
+🙅‍♀️ I'm really sorry, but I could not find any helpful information on that question.`);
       }
-      return interaction.editReply({
-        content: reply,
-      });
+      /* eslint-enable max-len */
     },
   },
 };

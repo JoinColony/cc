@@ -3,9 +3,10 @@ import { encode } from 'gpt-3-encoder';
 import { remark } from 'remark';
 import stripMarkdown, { Root } from 'strip-markdown';
 
-import type { DocsDescriptor } from './importer.ts';
+import type { DataType, DocsDescriptor } from './importer.ts';
 
 export interface MarkdownDescriptor {
+  dataType: DataType;
   filePath: string;
   // contents is always an array as it could be split up in multiple parts
   contents: string[];
@@ -74,6 +75,7 @@ export const readMarkdown = (
   basePath: string,
   filePath: string,
   getUrl: DocsDescriptor['getUrl'],
+  dataType: DataType,
 ): MarkdownDescriptor => {
   const md = readFileSync(filePath).toString();
   const tree = remark().parse(md);
@@ -83,7 +85,7 @@ export const readMarkdown = (
 
   if (tokenSize(stripped) > 3800) {
     const contents = split(tree).map(strip);
-    return { filePath, title, contents, url };
+    return { dataType, filePath, title, contents, url };
   }
-  return { filePath, title, contents: [stripped], url };
+  return { dataType, filePath, title, contents: [stripped], url };
 };

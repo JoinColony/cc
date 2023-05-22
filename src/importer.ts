@@ -12,8 +12,11 @@ import { client as weaviate } from './weaviate.ts';
 const FILENAME = fileURLToPath(import.meta.url);
 const DIRNAME = dirname(FILENAME);
 
+export type DataType = 'Doc' | 'Code';
+
 export interface DocsDescriptor {
   id: string;
+  dataType: DataType;
   basePath: string;
   getUrl: (basePath: string, filePath: string) => string;
 }
@@ -31,19 +34,11 @@ const articleSchema = {
     'generative-openai': {
       model: 'gpt-3.5-turbo',
       maxTokensProperty: 256,
-      temperatureProperty: 0.0,
+      temperatureProperty: 0.1,
       topPProperty: 1,
-      frequencyPenaltyProperty: 0.0,
+      frequencyPenaltyProperty: 0.6,
       presencePenaltyProperty: 0.0,
     },
-    // 'qna-openai': {
-    //   model: 'text-davinci-003',
-    //   maxTokens: 256,
-    //   temperature: 0.0,
-    //   topP: 1,
-    //   frequencyPenalty: 0.0,
-    //   presencePenalty: 0.0,
-    // },
   },
   properties: [
     {
@@ -72,6 +67,7 @@ const articleSchema = {
 const docs: DocsDescriptor[] = [
   {
     id: 'docs',
+    dataType: 'Doc',
     basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
     getUrl: (basePath, filePath) =>
       `https://docs.colony.io/${relativePath(basePath, filePath)}`
@@ -80,6 +76,7 @@ const docs: DocsDescriptor[] = [
   },
   {
     id: 'sdk',
+    dataType: 'Code',
     basePath: resolvePath(
       DIRNAME,
       '..',
@@ -88,34 +85,35 @@ const docs: DocsDescriptor[] = [
       'packages',
       'sdk',
       'docs',
+      'api',
     ),
     getUrl: (basePath, filePath) =>
-      `https://docs.colony.io/colonysdk/${relativePath(basePath, filePath)}`
+      `https://docs.colony.io/colonysdk/api/${relativePath(basePath, filePath)}`
         .replace(/index\.md$/, '')
         .replace(/\.md$/, ''),
   },
 ];
 
 const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
-  return docs.flatMap(({ basePath, getUrl }) => {
+  return docs.flatMap(({ basePath, getUrl, dataType }) => {
     return fg
       .sync(`${basePath}/**/*.md`)
-      .map((fileName) => readMarkdown(basePath, fileName, getUrl));
+      .map((fileName) => readMarkdown(basePath, fileName, getUrl, dataType));
   });
 };
 
 const start = async () => {
-  // await weaviate.schema.classDeleter().withClassName('Article').do();
+  await weaviate.schema.classDeleter().withClassName('Doc').do();
   await weaviate.schema.classCreator().withClass(articleSchema).do();
 
   const mds = getMarkdownDescriptors();
 
   let batcher = weaviate.batch.objectsBatcher();
 
-  mds.forEach(({ url, contents, title }) => {
+  mds.forEach(({ contents, dataType, title, url }) => {
     contents.forEach((content) => {
       batcher = batcher.withObject({
-        class: 'Doc',
+        class: dataType,
         properties: { title, content, url },
       });
     });

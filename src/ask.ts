@@ -5,16 +5,14 @@ export const ask = async (q: string) => {
     .get()
     .withClassName('Doc')
     .withFields('title content url')
-    .withNearText({
-      concepts: [q],
-    })
+    .withNearText({ concepts: [q] })
     .withGenerate({
       // eslint-disable-next-line max-len
-      singlePrompt: `You are a helpful assistant with knowledge around the Colony DAO ecosystem. The following prompt is two-fold: there will be the actual prompt and then context provided to help you process the prompt. Process the following prompt with the given context.
+      singlePrompt: `You are a helpful assistant with knowledge around the Colony DAO ecosystem. The following prompt is two-fold: there will be the actual prompt (which will be surrounded by three pairs of curly braces) and then context (which will be surrounded by three pairs of angled brackets) provided to help you process the prompt. Process the following prompt with the given context. In your answer, do not mention that there was a context given. If you can't answer the question based on the context, answer it without referring to the context.
 
-Prompt: ${q}
+Prompt: {{{ ${q} }}}
 
-Context: {content}`,
+Context: <<< {content} >>>`,
     })
     .withLimit(1)
     .do();
