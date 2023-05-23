@@ -21,7 +21,7 @@ const createAnswerText = (q: string, a: Answer) => {
     return `
 ❓ You asked: **${q}**
 
-🇦 **${a.answer.trim()}**
+🇦 ${a.answer.trim()}
 
 📃 For more info check: ${a.url}`;
   }
