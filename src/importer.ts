@@ -31,14 +31,14 @@ const articleSchema = {
       modelVersion: '002',
       type: 'text',
     },
-    'generative-openai': {
-      model: 'gpt-3.5-turbo',
-      maxTokensProperty: 256,
-      temperatureProperty: 0.1,
-      topPProperty: 1,
-      frequencyPenaltyProperty: 0.6,
-      presencePenaltyProperty: 0.0,
-    },
+    // 'generative-openai': {
+    //   model: 'gpt-3.5-turbo',
+    //   maxTokensProperty: 256,
+    //   temperatureProperty: 0.1,
+    //   topPProperty: 1,
+    //   frequencyPenaltyProperty: 0.6,
+    //   presencePenaltyProperty: 0.0,
+    // },
   },
   properties: [
     {
@@ -103,7 +103,7 @@ const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
 };
 
 const start = async () => {
-  await weaviate.schema.classDeleter().withClassName('Doc').do();
+  // await weaviate.schema.classDeleter().withClassName('Doc').do();
   await weaviate.schema.classCreator().withClass(articleSchema).do();
 
   const mds = getMarkdownDescriptors();

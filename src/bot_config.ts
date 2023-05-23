@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 
-import { ask } from './ask.ts';
+import { Answer, ask } from './ask.ts';
 
 const { DISCORD_BOT_TOKEN } = process.env;
 
@@ -14,6 +14,27 @@ export const config = {
   clientId: '1108521294212907038',
   guildId: '1073185825484967967',
 };
+
+/* eslint-disable max-len */
+const createAnswerText = (q: string, a: Answer) => {
+  if (a.foundInContext && a.answer) {
+    return `
+❓ You asked: **${q}**
+
+🇦 **${a.answer.trim()}**
+
+📃 For more info check: ${a.url}`;
+  }
+  return `
+❓ You asked: **${q}**
+
+🙅‍♀️ I'm really sorry, but I could not find any helpful information on that question.
+
+📃 For more info you might want to search our docs: https://docs.colony.io/search/?q=${encodeURIComponent(
+    q,
+  )}`;
+};
+/* eslint-enable max-len */
 
 export const commands = {
   q: {
@@ -33,14 +54,14 @@ export const commands = {
       }
       await interaction.deferReply({ ephemeral: true });
       try {
-        const reply = await ask(question);
-        if (!reply) {
+        const answer = await ask(question);
+        if (!answer) {
           return interaction.editReply(
             'Could not find an answer to your question',
           );
         }
         return interaction.editReply({
-          content: reply,
+          content: createAnswerText(question, answer),
         });
       } catch (e) {
         /* eslint-disable max-len */
@@ -48,7 +69,7 @@ export const commands = {
         return interaction.editReply(`
 ❓ You asked: **${question}**
 
-🙅‍♀️ I'm really sorry, but I could not find any helpful information on that question.`);
+🙅‍♀️ I'm really sorry, but something went terribly wrong. Feel free to report this issue`);
       }
       /* eslint-enable max-len */
     },
