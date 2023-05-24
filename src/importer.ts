@@ -65,33 +65,39 @@ const articleSchema = {
 };
 
 const docs: DocsDescriptor[] = [
-  {
-    id: 'docs',
-    dataType: 'Doc',
-    basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
-    getUrl: (basePath, filePath) =>
-      `https://docs.colony.io/${relativePath(basePath, filePath)}`
-        .replace(/index\.md$/, '')
-        .replace(/\.md$/, ''),
-  },
-  {
-    id: 'sdk',
-    dataType: 'Code',
-    basePath: resolvePath(
-      DIRNAME,
-      '..',
-      'vendor',
-      'colonyJS',
-      'packages',
-      'sdk',
-      'docs',
-      'api',
-    ),
-    getUrl: (basePath, filePath) =>
-      `https://docs.colony.io/colonysdk/api/${relativePath(basePath, filePath)}`
-        .replace(/index\.md$/, '')
-        .replace(/\.md$/, ''),
-  },
+  // {
+  //   id: 'docs',
+  //   dataType: 'Doc',
+  //   basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
+  //   getUrl: (basePath, filePath) =>
+  //     `https://docs.colony.io/${relativePath(basePath, filePath)}`
+  //       .replace(/index\.md$/, '')
+  //       .replace(/\.md$/, ''),
+  // },
+  // {
+  //   id: 'whitepaper',
+  //   dataType: 'Doc',
+  //   basePath: resolvePath(DIRNAME, '..', 'vendor', 'whitepaper'),
+  //   getUrl: () => `https://colony.io/whitepaper.pdf`,
+  // },
+  // {
+  //   id: 'sdk',
+  //   dataType: 'Code',
+  //   basePath: resolvePath(
+  //     DIRNAME,
+  //     '..',
+  //     'vendor',
+  //     'colonyJS',
+  //     'packages',
+  //     'sdk',
+  //     'docs',
+  //     'api',
+  //   ),
+  //   getUrl: (basePath, filePath) =>
+  //     `https://docs.colony.io/colonysdk/api/${relativePath(basePath, filePath)}`
+  //       .replace(/index\.md$/, '')
+  //       .replace(/\.md$/, ''),
+  // },
 ];
 
 const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
@@ -104,7 +110,7 @@ const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
 
 const start = async () => {
   // await weaviate.schema.classDeleter().withClassName('Doc').do();
-  await weaviate.schema.classCreator().withClass(articleSchema).do();
+  // await weaviate.schema.classCreator().withClass(articleSchema).do();
 
   const mds = getMarkdownDescriptors();
 
