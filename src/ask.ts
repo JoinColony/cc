@@ -1,3 +1,4 @@
+import { decode, encode } from 'gpt-3-encoder';
 import { client as weaviate } from './weaviate.ts';
 import { generate } from './openai.ts';
 
@@ -13,11 +14,21 @@ export const ask = async (q: string): Promise<Answer> => {
     .withClassName('Doc')
     .withFields('title content url')
     .withNearText({ concepts: [q], distance: 0.29 })
-    .withLimit(1)
+    .withLimit(10)
     .do();
-  if (res?.data?.Get?.Doc && res.data.Get.Doc[0]) {
-    const { content, title, url } = res.data.Get.Doc[0];
-    const { answer } = await generate(q, content);
+
+  if (res?.data?.Get?.Doc) {
+    const content = res.data.Get.Doc.reduce(
+      (all: string, doc: { content: string }) => `${all}\n\n${doc.content}`,
+      '',
+    );
+    const tokens = encode(content);
+    // Limit context
+    // GPT-3.5-turbo supports 4097 tokens for question and answer combined
+    // 4097 - 30 (question) - 70 (system prompt) - 256 (answer) = 3741
+    const decoded = decode(tokens.slice(0, 3741));
+    const { title, url } = res.data.Get.Doc[0];
+    const { answer } = await generate(q, decoded);
     return { answer, title, url };
   }
   const { answer } = await generate(q);

@@ -35,7 +35,7 @@ export const generate = async (
     model: 'gpt-3.5-turbo',
     frequency_penalty: 1,
     temperature: 0.8,
-    max_tokens: 512,
+    max_tokens: 256,
     messages: [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,

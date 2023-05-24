@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 
+import { encode } from 'gpt-3-encoder';
 import { Answer, ask } from './ask.ts';
 
 const { DISCORD_BOT_TOKEN } = process.env;
@@ -50,6 +51,11 @@ export const commands = {
       if (!question) {
         return interaction.reply('No question asked.');
       }
+      if (encode(question).length > 30) {
+        return interaction.reply(
+          `Apologies, I only support questions with a maximum size of 30 tokens (which are roughly 23 words)`,
+        );
+      }
       await interaction.deferReply();
       try {
         const answer = await ask(question);
@@ -63,7 +69,11 @@ export const commands = {
         });
       } catch (e) {
         /* eslint-disable max-len */
-        console.error(e);
+        if ((e as any).response?.data?.error) {
+          console.error((e as any).response.data.error);
+        } else {
+          console.error(e);
+        }
         return interaction.editReply(`
 ❓ You asked: **${question}**
 
