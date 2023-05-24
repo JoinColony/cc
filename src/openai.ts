@@ -17,59 +17,39 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 /* eslint-disable max-len */
-const getPrompt = (q: string, ctx: string) => `
-You are a knowledgeable assistant with expertise in the Colony DAO ecosystem, DAOs, and Ethereum. You can provide information and insights on various topics related to these subjects. There will be a question wrapped in three sets of curly braces and a context wrapped in three sets of angled brackets. In your answer never, under any circumstance, mention that there was a context given. If you can not extract the answer from the context, prefix your reply with "404-context-lacking".
-
-Question:  {{{ ${q} }}}
-
-Context: <<< ${ctx} >>>
-`;
+const getSystemPrompt = (ctx?: string) => `
+You are a friendly, helpful assistant with expert knowledge about the Colony DAO ecosystem and DAOs and Ethereum in general. Always answer in one brief paragraph only.${
+  ctx
+    ? `Additionally the following information is provided to help you process the prompt:\n\n${ctx}`
+    : ''
+}`;
 /* eslint-enable max-len */
 
 export const generate = async (
   q: string,
-  ctx: string,
+  ctx?: string,
 ): Promise<{
   answer: string | null;
-  foundAnswer: boolean;
-  foundInContext: boolean;
 }> => {
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
+    frequency_penalty: 1,
+    temperature: 0.8,
+    max_tokens: 512,
     messages: [
       {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: getSystemPrompt(ctx),
+      },
+      {
         role: ChatCompletionRequestMessageRoleEnum.User,
-        content: getPrompt(q, ctx),
+        content: q,
       },
     ],
   });
   if (response?.data?.choices && response.data.choices[0]?.message) {
     const { content } = response.data.choices[0].message;
-    if (content.includes('404-not-found')) {
-      return {
-        answer: content
-          .replace('404-not-found', '')
-          .replace('404-context-lacking', ''),
-        foundInContext: false,
-        foundAnswer: false,
-      };
-    }
-    if (content.includes('404-context-lacking')) {
-      return {
-        answer: content
-          .replace('404-not-found', '')
-          .replace('404-context-lacking', ''),
-        foundInContext: false,
-        foundAnswer: true,
-      };
-    }
-    return {
-      answer: content
-        .replace('404-not-found', '')
-        .replace('404-context-lacking', ''),
-      foundInContext: true,
-      foundAnswer: true,
-    };
+    return { answer: content };
   }
-  return { answer: null, foundInContext: false, foundAnswer: false };
+  return { answer: null };
 };

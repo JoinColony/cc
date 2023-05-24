@@ -17,13 +17,11 @@ export const config = {
 
 /* eslint-disable max-len */
 const createAnswerText = (q: string, a: Answer) => {
-  if (a.foundInContext && a.answer) {
+  if (a.answer) {
     return `
 ❓ You asked: **${q}**
 
-🇦 ${a.answer.trim()}
-
-📃 For more info check: ${a.url}`;
+🇦 ${a.answer.trim()} ${a.url ? `\n\n📃 For more info check: ${a.url}` : ''}`;
   }
   return `
 ❓ You asked: **${q}**
@@ -52,7 +50,7 @@ export const commands = {
       if (!question) {
         return interaction.reply('No question asked.');
       }
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       try {
         const answer = await ask(question);
         if (!answer) {

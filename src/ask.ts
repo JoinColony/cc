@@ -3,8 +3,6 @@ import { generate } from './openai.ts';
 
 export interface Answer {
   answer: string | null;
-  foundAnswer: boolean;
-  foundInContext: boolean;
   title: string | null;
   url: string | null;
 }
@@ -14,18 +12,17 @@ export const ask = async (q: string): Promise<Answer> => {
     .get()
     .withClassName('Doc')
     .withFields('title content url')
-    .withNearText({ concepts: [q] })
+    .withNearText({ concepts: [q], distance: 0.29 })
     .withLimit(1)
     .do();
   if (res?.data?.Get?.Doc && res.data.Get.Doc[0]) {
     const { content, title, url } = res.data.Get.Doc[0];
-    const { answer, foundInContext, foundAnswer } = await generate(q, content);
-    return { answer, foundAnswer, foundInContext, title, url };
+    const { answer } = await generate(q, content);
+    return { answer, title, url };
   }
+  const { answer } = await generate(q);
   return {
-    answer: null,
-    foundAnswer: false,
-    foundInContext: false,
+    answer,
     title: null,
     url: null,
   };
