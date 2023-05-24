@@ -12,12 +12,20 @@ export const ask = async (q: string): Promise<Answer> => {
   const res = await weaviate.graphql
     .get()
     .withClassName('Doc')
-    .withFields('title content url')
-    .withNearText({ concepts: [q], distance: 0.29 })
+    .withFields('title content url _additional { score }')
+    // .withNearText({ concepts: [q], distance: 0.29 })
+    .withHybrid({
+      query: q,
+      alpha: 0.25,
+    })
     .withLimit(10)
     .do();
 
   if (res?.data?.Get?.Doc) {
+    // res.data.Get.Doc.forEach(({ content, title, url, _additional }) => {
+    //   console.log(title, url, _additional.score);
+    // });
+    // return;
     const content = res.data.Get.Doc.reduce(
       (all: string, doc: { content: string }) => `${all}\n\n${doc.content}`,
       '',
