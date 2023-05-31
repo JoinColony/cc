@@ -1,6 +1,7 @@
 import { decode, encode } from 'gpt-3-encoder';
-import { client as weaviate } from './weaviate.ts';
-import { generate } from './openai.ts';
+
+import { client as weaviate } from './weaviate.js';
+import { generate } from './openai.js';
 
 export interface Answer {
   answer: string | null;
@@ -16,7 +17,7 @@ export const ask = async (q: string): Promise<Answer> => {
     // .withNearText({ concepts: [q], distance: 0.29 })
     .withHybrid({
       query: q,
-      alpha: 0.25,
+      alpha: 0.3,
     })
     .withLimit(10)
     .do();

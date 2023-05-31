@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { encode } from 'gpt-3-encoder';
 import { remark } from 'remark';
-import stripMarkdown, { Root } from 'strip-markdown';
+import stripMarkdown, { type Root } from 'strip-markdown';
 
-import type { DataType, DocsDescriptor } from './importer.ts';
+import type { DataType, DocsDescriptor } from './importer.js';
 
 export interface MarkdownDescriptor {
   dataType: DataType;

@@ -1,6 +1,6 @@
 import { REST, Routes } from 'discord.js';
 
-import { config, commands } from './bot_config.ts';
+import { config, commands } from './bot_config.js';
 
 const rest = new REST().setToken(config.token);
 

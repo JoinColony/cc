@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-
 import { encode } from 'gpt-3-encoder';
-import { Answer, ask } from './ask.ts';
+
+import { type Answer, ask } from './ask.js';
 
 const { DISCORD_BOT_TOKEN } = process.env;
 

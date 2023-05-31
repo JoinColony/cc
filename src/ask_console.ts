@@ -1,5 +1,8 @@
-import { ask } from './ask.ts';
+import { ask } from './ask.js';
 
 const [, , q] = process.argv;
 
-ask(q);
+(async () => {
+  const answer = await ask(q);
+  console.info(answer.answer);
+})();

@@ -1,11 +1,11 @@
 import {
   Events,
   Client,
-  Interaction,
   ChatInputCommandInteraction,
+  type Interaction,
 } from 'discord.js';
 
-import { config, commands } from './bot_config.ts';
+import { config, commands } from './bot_config.js';
 
 const client = new Client({ intents: [] });
 

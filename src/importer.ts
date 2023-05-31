@@ -6,8 +6,8 @@ import {
 import { fileURLToPath } from 'node:url';
 import fg from 'fast-glob';
 
-import { MarkdownDescriptor, readMarkdown } from './markdown.ts';
-import { client as weaviate } from './weaviate.ts';
+import { type MarkdownDescriptor, readMarkdown } from './markdown.js';
+import { client as weaviate } from './weaviate.js';
 
 const FILENAME = fileURLToPath(import.meta.url);
 const DIRNAME = dirname(FILENAME);
@@ -31,14 +31,6 @@ const articleSchema = {
       modelVersion: '002',
       type: 'text',
     },
-    // 'generative-openai': {
-    //   model: 'gpt-3.5-turbo',
-    //   maxTokensProperty: 256,
-    //   temperatureProperty: 0.1,
-    //   topPProperty: 1,
-    //   frequencyPenaltyProperty: 0.6,
-    //   presencePenaltyProperty: 0.0,
-    // },
   },
   properties: [
     {
@@ -65,21 +57,21 @@ const articleSchema = {
 };
 
 const docs: DocsDescriptor[] = [
-  // {
-  //   id: 'docs',
-  //   dataType: 'Doc',
-  //   basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
-  //   getUrl: (basePath, filePath) =>
-  //     `https://docs.colony.io/${relativePath(basePath, filePath)}`
-  //       .replace(/index\.md$/, '')
-  //       .replace(/\.md$/, ''),
-  // },
-  // {
-  //   id: 'whitepaper',
-  //   dataType: 'Doc',
-  //   basePath: resolvePath(DIRNAME, '..', 'vendor', 'whitepaper'),
-  //   getUrl: () => `https://colony.io/whitepaper.pdf`,
-  // },
+  {
+    id: 'docs',
+    dataType: 'Doc',
+    basePath: resolvePath(DIRNAME, '..', 'vendor', 'docs', 'colony'),
+    getUrl: (basePath, filePath) =>
+      `https://docs.colony.io/${relativePath(basePath, filePath)}`
+        .replace(/index\.md$/, '')
+        .replace(/\.md$/, ''),
+  },
+  {
+    id: 'whitepaper',
+    dataType: 'Doc',
+    basePath: resolvePath(DIRNAME, '..', 'vendor', 'whitepaper'),
+    getUrl: () => `https://colony.io/whitepaper.pdf`,
+  },
   // {
   //   id: 'sdk',
   //   dataType: 'Code',
@@ -110,7 +102,7 @@ const getMarkdownDescriptors = (): MarkdownDescriptor[] => {
 
 const start = async () => {
   // await weaviate.schema.classDeleter().withClassName('Doc').do();
-  // await weaviate.schema.classCreator().withClass(articleSchema).do();
+  await weaviate.schema.classCreator().withClass(articleSchema).do();
 
   const mds = getMarkdownDescriptors();
 
