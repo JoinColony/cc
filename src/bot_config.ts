@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { encode } from 'gpt-3-encoder';
 
 import { type Answer, ask } from './ask.js';
+import { execute } from './execute.js';
 
 const { DISCORD_BOT_TOKEN } = process.env;
 
@@ -13,7 +14,7 @@ if (!DISCORD_BOT_TOKEN) {
 export const config = {
   token: DISCORD_BOT_TOKEN,
   clientId: '1108521294212907038',
-  guildId: '1073185825484967967',
+  guildId: '562263648173555742',
 };
 
 /* eslint-disable max-len */
@@ -35,10 +36,17 @@ const createAnswerText = (q: string, a: Answer) => {
 };
 /* eslint-enable max-len */
 
+const createCommandReplyText = (cmd: string, r: string) => {
+  return `
+❓ Your command: **${cmd}**
+
+🇦 ${r.trim()}`;
+};
+
 export const commands = {
-  q: {
+  ask: {
     data: new SlashCommandBuilder()
-      .setName('q')
+      .setName('ask')
       .setDescription('Ask me anything. As long as it is about Colony')
       .addStringOption((option) =>
         option
@@ -68,14 +76,62 @@ export const commands = {
           content: createAnswerText(question, answer),
         });
       } catch (e) {
-        /* eslint-disable max-len */
         if ((e as any).response?.data?.error) {
           console.error((e as any).response.data.error);
         } else {
           console.error(e);
         }
+        /* eslint-disable max-len */
         return interaction.editReply(`
 ❓ You asked: **${question}**
+
+🙅‍♀️ I'm really sorry, but something went terribly wrong. Feel free to report this issue`);
+      }
+      /* eslint-enable max-len */
+    },
+  },
+  call: {
+    data: new SlashCommandBuilder()
+      .setName('call')
+      .setDescription(
+        `Calls a function on chain. Can answer questions about Colonies and users or generate transactions`,
+      )
+      .addStringOption((option) =>
+        option
+          .setName('command')
+          .setDescription('Your command')
+          .setRequired(true),
+      ),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const command = interaction.options.getString('command');
+      if (!command) {
+        return interaction.reply('No command provided.');
+      }
+      if (encode(command).length > 200) {
+        return interaction.reply(
+          `Apologies, I only support questions with a maximum size of 200 tokens (which are roughly 150 words)`,
+        );
+      }
+      await interaction.deferReply();
+      try {
+        const reply = await execute(command);
+        if (!reply) {
+          return interaction.editReply(
+            'Could not find an appropriate reply to your command',
+          );
+        }
+        return interaction.editReply({
+          content: createCommandReplyText(command, reply),
+        });
+      } catch (e) {
+        if ((e as any).response?.data?.error) {
+          console.error((e as any).response.data.error);
+        } else {
+          console.error(e);
+        }
+        /* eslint-disable max-len */
+        return interaction.editReply(`
+❓ Your command: **${command}**
 
 🙅‍♀️ I'm really sorry, but something went terribly wrong. Feel free to report this issue`);
       }

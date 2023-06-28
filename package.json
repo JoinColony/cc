@@ -1,8 +1,8 @@
 {
   "name": "clooney",
   "version": "1.0.0",
-  "description": "Hangs out in our Discord to answer your questions",
   "type": "module",
+  "description": "Hangs out in our Discord to answer your questions",
   "exports": "./dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist/",
@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@colony/eslint-config-colony": "^9.2.0",
+    "@colony/sdk": "^2.0.0-next.3",
     "axios": "^1.4.0",
     "discord.js": "^14.11.0",
     "eslint": "^8.40.0",
@@ -25,9 +26,10 @@
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^4.2.1",
+    "ethers": "^5.7.2",
     "fast-glob": "^3.2.12",
     "gpt-3-encoder": "^1.1.4",
-    "openai": "^3.2.1",
+    "openai": "^3.3.0",
     "prettier": "^2.8.8",
     "remark": "^14.0.3",
     "remove-markdown": "^0.5.0",
