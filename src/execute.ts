@@ -1,14 +1,8 @@
 import { constants, providers, utils, type BigNumberish } from 'ethers';
 import typia, { type IValidation } from 'typia';
-import {
-  ColonyRpcEndpoint,
-  ColonyNetwork,
-  ColonyRole,
-  toEth,
-} from '@colony/sdk';
+import { ColonyRpcEndpoint, ColonyNetwork, ColonyRole } from '@colony/sdk';
 import { ERC20TokenFactory } from '@colony/tokens';
 
-import { formatUnits } from 'ethers/lib/utils.js';
 import { openai } from './openai.js';
 import { createPendingTx, type TxResult } from './tx.js';
 
@@ -18,7 +12,7 @@ if (!CLOONEY_URL) {
   throw new Error('Need CLOONEY_URL');
 }
 
-const { isAddress, parseUnits } = utils;
+const { isAddress, formatUnits, parseUnits } = utils;
 
 const provider = new providers.JsonRpcProvider(ColonyRpcEndpoint.Gnosis);
 const colonyNetwork = new ColonyNetwork(provider);
@@ -139,7 +133,9 @@ interface FnSchema {
 
 interface TxSchema {
   kind: SchemaKind.Tx;
-  createTx: (args: any) => Promise<TxResult>;
+  validate: (args: any) => void;
+  encode: (args: any) => Promise<TxResult>;
+  send: (json: string) => Promise<string>;
 }
 
 type SchemaEntry = FnSchema | TxSchema;
@@ -169,14 +165,30 @@ const handleValidated = (validated: IValidation) => {
   }
 };
 
+interface GetBalanceArgs {
+  colonyAddress: string;
+  tokenAddress?: string;
+  teamId?: BigNumberish;
+}
+
+interface ColonyUserArgs {
+  colonyAddress: string;
+  walletAddress: string;
+  teamId?: BigNumberish;
+}
+
+interface PayArgs {
+  colonyAddress: string;
+  recipient: string;
+  amount: string;
+  teamId?: BigNumberish;
+  tokenAddress?: string;
+}
+
 const SCHEMA_MAP: Record<string, SchemaEntry> = {
   getBalance: {
     kind: SchemaKind.Fn,
-    async call(args: {
-      colonyAddress: string;
-      tokenAddress?: string;
-      teamId?: BigNumberish;
-    }) {
+    async call(args: GetBalanceArgs) {
       const validated = typia.validate(args);
       handleValidated(validated);
       const { colonyAddress, tokenAddress, teamId } = args;
@@ -195,11 +207,7 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
   },
   getRoles: {
     kind: SchemaKind.Fn,
-    async call(args: {
-      colonyAddress: string;
-      walletAddress: string;
-      teamId?: BigNumberish;
-    }) {
+    async call(args: ColonyUserArgs) {
       const validated = typia.validate(args);
       handleValidated(validated);
       const { colonyAddress, walletAddress, teamId } = args;
@@ -220,11 +228,7 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
   },
   getReputation: {
     kind: SchemaKind.Fn,
-    async call(args: {
-      colonyAddress: string;
-      walletAddress: string;
-      teamId?: BigNumberish;
-    }) {
+    async call(args: ColonyUserArgs) {
       const validated = typia.validate(args);
       handleValidated(validated);
       const { colonyAddress, walletAddress, teamId } = args;
@@ -238,13 +242,11 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
   },
   pay: {
     kind: SchemaKind.Tx,
-    async createTx(args: {
-      colonyAddress: string;
-      recipient: string;
-      amount: string;
-      teamId?: BigNumberish;
-      tokenAddress?: string;
-    }) {
+    validate(args: PayArgs) {
+      const validated = typia.validate(args);
+      handleValidated(validated);
+    },
+    async encode(args: PayArgs) {
       const validated = typia.validate(args);
       handleValidated(validated);
       const { colonyAddress, recipient, amount, teamId, tokenAddress } = args;
@@ -261,12 +263,18 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
       const symbol = await token.symbol();
       const decimals = await token.decimals();
 
-      const encoded = await colony.ext.oneTx
-        .pay(targetAddress, parseUnits(amount, decimals), teamId, tokenAddress)
-        .tx()
-        .encode();
+      const encoded = JSON.stringify({
+        colonyAddress,
+        recipient: targetAddress,
+        amount: parseUnits(amount, decimals).toString(),
+        teamId,
+        tokenAddress: token.address,
+      } as PayArgs);
+
       // eslint-disable-next-line max-len
-      const readable = `Send ${symbol} ${amount} to address ${recipient} within team ${
+      const readable = `Send ${amount} ${symbol} (${
+        token.address
+      }) to address ${targetAddress} within team ${
         teamId || 'root'
       } in Colony ${colonyAddress}`;
 
@@ -274,6 +282,23 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
         encoded,
         readable,
       };
+    },
+    async send(json: string) {
+      // FIXME: this won't work as we still don't have a signer here. We have to encode the transaction in browser
+      const args: PayArgs = JSON.parse(json);
+      const { colonyAddress, recipient, amount, teamId, tokenAddress } = args;
+      const colony = await colonyNetwork.getColony(colonyAddress);
+      if (!colony.ext.oneTx) {
+        throw new Error(
+          `One Transaction Payment Extension is not installed in Colony ${colonyAddress}`,
+        );
+      }
+      const [{ hash }] = await colony.ext.oneTx
+        .pay(recipient, amount, teamId, tokenAddress)
+        .metaTx()
+        .send();
+
+      return hash;
     },
   },
 };
@@ -311,11 +336,12 @@ export const execute = async (cmd: string) => {
 
     if (schema.kind === SchemaKind.Tx) {
       try {
-        const result = await schema.createTx(parsedArgs);
-        return result;
-        // const sessionId = await createPendingTx(result);
-        // return `Transaction successfully encoded. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/${sessionId}`;
+        schema.validate(parsedArgs);
+        const result = await schema.encode(parsedArgs);
+        const sessionId = await createPendingTx(result);
+        return `Transaction successfully created. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/${sessionId}`;
       } catch (e) {
+        console.error(e);
         // eslint-disable-next-line max-len
         return `**There was an error during the creation of the transaction**:\n${
           (e as Error).message
