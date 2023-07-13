@@ -5,7 +5,10 @@ import {
   type Interaction,
 } from 'discord.js';
 
+import Fastify from 'fastify';
+
 import { config, commands } from './bot_config.js';
+import { prisma } from './tx.js';
 
 const client = new Client({ intents: [] });
 
@@ -43,3 +46,25 @@ const handleSlashCommand = async (
 };
 
 client.login(config.token);
+
+const fastify = Fastify();
+
+fastify.get<{ Params: { sessionId: string } }>(
+  '/:sessionId',
+  async (request, reply) => {
+    if (
+      !request.params.sessionId.match(
+        // eslint-disable-next-line max-len
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      )
+    ) {
+      return reply.send(400);
+    }
+    const session = prisma.transaction.findUnique({
+      where: {
+        id: request.params.sessionId,
+      },
+    });
+    return reply.code(200).send(session);
+  },
+);
