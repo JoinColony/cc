@@ -1,13 +1,24 @@
-import { BigNumber, constants, providers } from 'ethers';
+import { constants, providers, utils, type BigNumberish } from 'ethers';
+import typia, { type IValidation } from 'typia';
 import {
   ColonyRpcEndpoint,
   ColonyNetwork,
   ColonyRole,
   toEth,
 } from '@colony/sdk';
+import { ERC20TokenFactory } from '@colony/tokens';
 
-import { isAddress } from 'ethers/lib/utils.js';
+import { formatUnits } from 'ethers/lib/utils.js';
 import { openai } from './openai.js';
+import { createPendingTx, type TxResult } from './tx.js';
+
+const { CLOONEY_URL } = process.env;
+
+if (!CLOONEY_URL) {
+  throw new Error('Need CLOONEY_URL');
+}
+
+const { isAddress, parseUnits } = utils;
 
 const provider = new providers.JsonRpcProvider(ColonyRpcEndpoint.Gnosis);
 const colonyNetwork = new ColonyNetwork(provider);
@@ -84,72 +95,185 @@ const FN_SCHEMAS = [
       required: ['colonyAddress'],
     },
   },
+  {
+    name: 'pay',
+    description: `Pay a person or address using tokens that are in the Colony's treasury`,
+    parameters: {
+      type: 'object',
+      properties: {
+        colonyAddress: {
+          type: 'string',
+          description: 'The address of the Colony to pay the person from',
+        },
+        recipient: {
+          type: 'string',
+          description: `The address of the person who receives the tokens`,
+        },
+        amount: {
+          type: 'string',
+          description: 'The amount of tokens to send',
+        },
+        tokenAddress: {
+          type: 'string',
+          description: `The token address of the token which will be sent`,
+        },
+        teamId: {
+          type: 'number',
+          description: 'The team within the Colony to send the tokens from',
+        },
+      },
+      required: ['colonyAddress', 'recipient', 'amount'],
+    },
+  },
 ];
 
-interface SchemaEntry {
-  args: string[];
-  format: (colonyAddress: string, args: any, result: any) => Promise<string>;
-  transform?: (args: any) => Promise<any>;
+enum SchemaKind {
+  Fn = 'FunctionCall',
+  Tx = 'Transaction',
 }
 
+interface FnSchema {
+  kind: SchemaKind.Fn;
+  call: (args: any) => Promise<string>;
+}
+
+interface TxSchema {
+  kind: SchemaKind.Tx;
+  createTx: (args: any) => Promise<TxResult>;
+}
+
+type SchemaEntry = FnSchema | TxSchema;
+
+const getTargetAddress = async (usernameOrAddress: string) => {
+  if (!isAddress(usernameOrAddress)) {
+    const address = await colonyNetwork.getUserAddress(usernameOrAddress);
+    if (!address) {
+      throw new Error(`No address found for ${usernameOrAddress}`);
+    }
+    return address;
+  }
+  return usernameOrAddress;
+};
+
+const handleValidated = (validated: IValidation) => {
+  if (!validated.success) {
+    const errs = validated.errors
+      .map(
+        ({ path, expected, value }) =>
+          `In ${path}: expected ${expected}, got ${value}`,
+      )
+      .join('\n');
+    throw new Error(
+      `Your input seems to be invalid. I found the following errors:\n${errs}`,
+    );
+  }
+};
+
 const SCHEMA_MAP: Record<string, SchemaEntry> = {
+  getBalance: {
+    kind: SchemaKind.Fn,
+    async call(args: {
+      colonyAddress: string;
+      tokenAddress?: string;
+      teamId?: BigNumberish;
+    }) {
+      const validated = typia.validate(args);
+      handleValidated(validated);
+      const { colonyAddress, tokenAddress, teamId } = args;
+      const colony = await colonyNetwork.getColony(colonyAddress);
+      const balance = await colony.getBalance(tokenAddress, teamId);
+      const token = tokenAddress
+        ? ERC20TokenFactory.connect(tokenAddress, provider)
+        : colony.token;
+      const symbol = await token.symbol();
+      const decimals = await token.decimals();
+      return `There's a balance of ${symbol} ${formatUnits(
+        balance,
+        decimals,
+      )} in Colony ${colonyAddress}`;
+    },
+  },
   getRoles: {
-    args: ['walletAddress', 'teamId'],
-    async format(
-      colonyAddress,
-      { walletAddress, teamId }: { walletAddress: string; teamId: string },
-      roles: ColonyRole[],
-    ) {
+    kind: SchemaKind.Fn,
+    async call(args: {
+      colonyAddress: string;
+      walletAddress: string;
+      teamId?: BigNumberish;
+    }) {
+      const validated = typia.validate(args);
+      handleValidated(validated);
+      const { colonyAddress, walletAddress, teamId } = args;
+      const colony = await colonyNetwork.getColony(colonyAddress);
+      const targetAddress = await getTargetAddress(walletAddress);
+      const roles = await colony.getRoles(targetAddress, teamId);
       if (!roles.length) {
-        return `The user ${walletAddress} does not have any roles in team ${
+        return `The user ${targetAddress} does not have any roles in team ${
           teamId || 'root'
         } of the Colony ${colonyAddress}.`;
       }
-      return `The roles of the user with address ${walletAddress} in team ${
+      return `The roles of the user with address ${targetAddress} in team ${
         teamId || 'root'
       } of the Colony ${colonyAddress} are ${roles
         .map((role) => ColonyRole[role])
         .join(', ')}`;
     },
-    async transform({ walletAddress, ...rest }) {
-      if (!isAddress(walletAddress)) {
-        const address = await colonyNetwork.getUserAddress(walletAddress);
-        if (address) {
-          return { walletAddress: address, ...rest };
-        }
-      }
-      return { walletAddress, ...rest };
-    },
   },
   getReputation: {
-    args: ['walletAddress', 'teamId'],
-    async format(
-      colonyAddress,
-      { walletAddress, teamId }: { walletAddress: string; teamId: string },
-      rep: BigNumber,
-    ) {
+    kind: SchemaKind.Fn,
+    async call(args: {
+      colonyAddress: string;
+      walletAddress: string;
+      teamId?: BigNumberish;
+    }) {
+      const validated = typia.validate(args);
+      handleValidated(validated);
+      const { colonyAddress, walletAddress, teamId } = args;
+      const colony = await colonyNetwork.getColony(colonyAddress);
+      const targetAddress = await getTargetAddress(walletAddress);
+      const rep = await colony.getReputation(targetAddress, teamId);
       return `The reputation of ${walletAddress} in team ${
         teamId || 'root'
-      } of the Colony ${colonyAddress} is ${toEth(rep).toString()}`;
-    },
-    async transform({ walletAddress, ...rest }) {
-      if (!isAddress(walletAddress)) {
-        const address = await colonyNetwork.getUserAddress(walletAddress);
-        if (address) {
-          return { walletAddress: address, ...rest };
-        }
-      }
-      return { walletAddress, ...rest };
+      } of the Colony ${colonyAddress} is ${rep * 100}%`;
     },
   },
-  getBalance: {
-    args: ['tokenAddress', 'teamId'],
-    async format(
-      colonyAddress,
-      args: { tokenAddress: string; teamId: string },
-      balance: BigNumber,
-    ) {
-      return toEth(balance).toString();
+  pay: {
+    kind: SchemaKind.Tx,
+    async createTx(args: {
+      colonyAddress: string;
+      recipient: string;
+      amount: string;
+      teamId?: BigNumberish;
+      tokenAddress?: string;
+    }) {
+      const validated = typia.validate(args);
+      handleValidated(validated);
+      const { colonyAddress, recipient, amount, teamId, tokenAddress } = args;
+      const colony = await colonyNetwork.getColony(colonyAddress);
+      if (!colony.ext.oneTx) {
+        throw new Error(
+          `One Transaction Payment Extension is not installed in Colony ${colonyAddress}`,
+        );
+      }
+      const targetAddress = await getTargetAddress(recipient);
+      const token = tokenAddress
+        ? ERC20TokenFactory.connect(tokenAddress, provider)
+        : colony.token;
+      const symbol = await token.symbol();
+      const decimals = await token.decimals();
+
+      const encoded = await colony.ext.oneTx
+        .pay(targetAddress, parseUnits(amount, decimals), teamId, tokenAddress)
+        .tx()
+        .encode();
+      // eslint-disable-next-line max-len
+      const readable = `Send ${symbol} ${amount} to address ${recipient} within team ${
+        teamId || 'root'
+      } in Colony ${colonyAddress}`;
+
+      return {
+        encoded,
+        readable,
+      };
     },
   },
 };
@@ -175,21 +299,29 @@ export const execute = async (cmd: string) => {
     if (!fn || !args) {
       throw new Error('Could not get fn or args');
     }
-    let parsedArgs = JSON.parse(args);
+    const parsedArgs = JSON.parse(args);
     const schema = SCHEMA_MAP[fn as keyof typeof SCHEMA_MAP];
     if (!schema) {
       throw new Error(`No schema definition found for ${fn}`);
     }
-    if (schema.transform) {
-      parsedArgs = await schema.transform(parsedArgs);
+
+    if (schema.kind === SchemaKind.Fn) {
+      return schema.call(parsedArgs);
     }
-    const filledArgs = schema.args.map((arg) => parsedArgs[arg]);
-    const { colonyAddress } = parsedArgs;
-    const colony = await colonyNetwork.getColony(colonyAddress);
-    const result = await (
-      colony[fn as keyof typeof colony] as (...args: any[]) => any
-    ).apply(colony, filledArgs);
-    return schema.format(colonyAddress, parsedArgs, result);
+
+    if (schema.kind === SchemaKind.Tx) {
+      try {
+        const result = await schema.createTx(parsedArgs);
+        return result;
+        // const sessionId = await createPendingTx(result);
+        // return `Transaction successfully encoded. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/${sessionId}`;
+      } catch (e) {
+        // eslint-disable-next-line max-len
+        return `**There was an error during the creation of the transaction**:\n${
+          (e as Error).message
+        }`;
+      }
+    }
   }
   if (chatCompletion?.data?.choices[0]?.message?.content) {
     const { content } = chatCompletion.data.choices[0].message;

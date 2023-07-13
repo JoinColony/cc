@@ -5,5 +5,5 @@ const [, , cmd] = process.argv;
 (async () => {
   console.info(cmd);
   const answer = await execute(cmd);
-  // console.info(answer.answer);
+  console.info(answer);
 })();
