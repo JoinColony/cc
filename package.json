@@ -5,7 +5,7 @@
   "description": "Hangs out in our Discord to answer your questions",
   "exports": "./dist/index.js",
   "scripts": {
-    "build": "concurrently npm:build-backend npm:build-frontend npm:build-css npm:build-html",
+    "build": "concurrently npm:build-backend npm:build-frontend npm:build-css npm:build-static",
     "build-backend": "tsc -p tsconfig.json --outDir dist/",
     "build-css": "tailwindcss -i ./frontend/src/index.css -o ./dist/www/bundle.css --minify",
     "build-frontend": "esbuild --bundle frontend/src/index.ts --minify --outfile=dist/www/index.js",
