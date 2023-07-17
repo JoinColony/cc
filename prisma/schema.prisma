@@ -12,6 +12,7 @@ datasource db {
 
 model Transaction {
     id        String   @id
+    fn        String
     encoded   String
     readable  String
     createdAt DateTime @default(now())
