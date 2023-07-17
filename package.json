@@ -10,7 +10,7 @@
     "build-css": "tailwindcss -i ./frontend/src/index.css -o ./dist/www/bundle.css --minify",
     "build-frontend": "esbuild --bundle frontend/src/index.ts --minify --outfile=dist/www/index.js",
     "build-static": "cpy --flat frontend/static/*.{html,woff2,svg,ico} dist/www",
-    "watch-backend": "ts-node src/bot.ts",
+    "watch-backend": "ts-node src/index.ts",
     "watch-css": "tailwindcss -i ./frontend/src/index.css -o ./dist/www/bundle.css --watch",
     "watch-frontend": "esbuild --bundle --outfile=dist/www/index.js --watch frontend/src/index.ts",
     "import": "ts-node src/importer.ts",

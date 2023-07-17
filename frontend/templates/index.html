@@ -10,6 +10,7 @@
 </head>
 
 <body class="flex items-center justify-center h-screen bg-purple-1000">
+
   <main class="container overflow-hidden mx-auto max-w-2xl md:rounded-lg">
     <header class="bg-purple-500 p-6 relative md:p-9">
       <img class="w-44" alt="Colony logo" src="/colony.svg" />
@@ -17,7 +18,7 @@
     </header>
     <section class="bg-white p-6 md:p-9">
       <h1 class="text-xl font-semibold md:text-3xl">
-          Sign transaction for clooney
+        Sign transaction for clooney
       </h1>
       <h2 class="mt-4 text-sm font-semibold text-blue-400 uppercase md:text-l">
         clooney needs you to sign &amp; send a transaction
@@ -26,16 +27,40 @@
         Please double-check the following transaction and click the button to sign it and send it off using your
         browser-wallet.
       </p>
-      <pre class="mt-4 whitespace-normal">
+      <p class="mt-2 text-pink font-semibold">
+        This is experimental software. Please use for testing purposes and for fun only! Do not send large amounts of
+        sums around and double/triple/quadruple check the filled arguments.
+      </p>
+      <h3 class="text-xl mt-4">Action</h3>
+      <pre class="mt-2 text-sm whitespace-normal">
         {{ session.readable }}
       </pre>
-      <p class="mt-16 text-right">
-        <button id="sendbutton" class="bg-blue-400 text-white rounded-3xl py-3 px-8">
+      <h3 class="text-xl mt-4">Function</h3>
+      <pre id="text-fn" class="mt-2 whitespace-normal">
+        {{ session.fn }}
+      </pre>
+      <button id="button-args" data-state="hidden" class="mt-4">&#9660; Show all arguments</button>
+      <pre id="text-args" class="mt-2 text-sm whitespace-normal break-words hidden">
+        {{ session.encoded }}
+      </pre>
+      <p id="text-error" class="mt-2 text-pink font-semibold invisible">
+        That didn't work. Please report this issue in the <a href="https://discord.gg/feVZWwysqM" target="_blank"
+          rel="noopener noreferrer" class="underline text-blue-400">Colony Discord</a>.
+      </p>
+      <p id="text-success" class="text-green font-semibold invisible">
+        Success! You can safely close this window now.
+      </p>
+      <p class="mt-2 text-right">
+        <button id="button-send" class="bg-blue-400 text-white rounded-3xl py-3 px-8">
           Sign &amp; Send
-          </button>
+        </button>
       </p>
     </section>
   </main>
 </body>
+
+<template id="data-encoded">
+  {{ session.encoded }}
+</template>
 
 </html>

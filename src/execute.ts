@@ -134,7 +134,6 @@ interface FnSchema {
 interface TxSchema {
   kind: SchemaKind.Tx;
   encode: (args: any) => Promise<TxResult>;
-  send: (json: string) => Promise<string>;
 }
 
 type SchemaEntry = FnSchema | TxSchema;
@@ -274,26 +273,10 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
       } in Colony ${colonyAddress}`;
 
       return {
+        fn: 'pay',
         encoded,
         readable,
       };
-    },
-    async send(json: string) {
-      // FIXME: this won't work as we still don't have a signer here. We have to encode the transaction in browser
-      const args: PayArgs = JSON.parse(json);
-      const { colonyAddress, recipient, amount, teamId, tokenAddress } = args;
-      const colony = await colonyNetwork.getColony(colonyAddress);
-      if (!colony.ext.oneTx) {
-        throw new Error(
-          `One Transaction Payment Extension is not installed in Colony ${colonyAddress}`,
-        );
-      }
-      const [{ hash }] = await colony.ext.oneTx
-        .pay(recipient, amount, teamId, tokenAddress)
-        .metaTx()
-        .send();
-
-      return hash;
     },
   },
 };
@@ -333,7 +316,7 @@ export const execute = async (cmd: string) => {
       try {
         const result = await schema.encode(parsedArgs);
         const sessionId = await createPendingTx(result);
-        return `Transaction successfully created. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/${sessionId}`;
+        return `Transaction successfully created. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/tx/${sessionId}`;
       } catch (e) {
         console.error(e);
         // eslint-disable-next-line max-len
