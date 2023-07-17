@@ -1,14 +1,20 @@
+import { fileURLToPath } from 'node:url';
+import { resolve as resolvePath } from 'node:path';
 import {
   Events,
   Client,
   ChatInputCommandInteraction,
   type Interaction,
 } from 'discord.js';
-
 import Fastify from 'fastify';
+import fastifyView from '@fastify/view';
+import fastifyStatic from '@fastify/static';
+import handlebars from 'handlebars';
 
 import { config, commands } from './bot_config.js';
 import { prisma } from './tx.js';
+
+const DIRNAME = fileURLToPath(new URL('.', import.meta.url));
 
 const client = new Client({ intents: [] });
 
@@ -49,8 +55,19 @@ client.login(config.token);
 
 const fastify = Fastify();
 
+fastify.register(fastifyView, {
+  engine: {
+    handlebars,
+  },
+  root: resolvePath(DIRNAME, '..', 'frontend', 'templates'),
+});
+
+fastify.register(fastifyStatic, {
+  root: resolvePath(DIRNAME, '..', 'dist', 'www'),
+});
+
 fastify.get<{ Params: { sessionId: string } }>(
-  '/:sessionId',
+  '/tx/:sessionId',
   async (request, reply) => {
     if (
       !request.params.sessionId.match(
@@ -60,11 +77,19 @@ fastify.get<{ Params: { sessionId: string } }>(
     ) {
       return reply.send(400);
     }
-    const session = prisma.transaction.findUnique({
+    const session = await prisma.transaction.findUnique({
       where: {
         id: request.params.sessionId,
       },
     });
-    return reply.code(200).send(session);
+    if (!session) {
+      // TODO: make 404 page
+      return reply.send(404);
+    }
+    return reply.view('index.html', { session });
   },
 );
+
+fastify.listen({ port: 3000 }, (err) => {
+  if (err) throw err;
+});

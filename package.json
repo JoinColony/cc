@@ -5,10 +5,17 @@
   "description": "Hangs out in our Discord to answer your questions",
   "exports": "./dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json --outDir dist/",
-    "start": "ts-node src/bot.ts",
+    "build": "concurrently npm:build-backend npm:build-frontend npm:build-css npm:build-html",
+    "build-backend": "tsc -p tsconfig.json --outDir dist/",
+    "build-css": "tailwindcss -i ./frontend/src/index.css -o ./dist/www/bundle.css --minify",
+    "build-frontend": "esbuild --bundle frontend/src/index.ts --minify --outfile=dist/www/index.js",
+    "build-static": "cpy --flat frontend/static/*.{html,woff2,svg,ico} dist/www",
+    "watch-backend": "ts-node src/bot.ts",
+    "watch-css": "tailwindcss -i ./frontend/src/index.css -o ./dist/www/bundle.css --watch",
+    "watch-frontend": "esbuild --bundle --outfile=dist/www/index.js --watch frontend/src/index.ts",
     "import": "ts-node src/importer.ts",
-    "prepare": "ts-patch install"
+    "prepare": "ts-patch install",
+    "start": "npm run build-static && concurrently npm:watch-frontend npm:watch-backend npm:watch-css"
   },
   "engines": {
     "node": ">=16"
@@ -20,6 +27,8 @@
     "@colony/eslint-config-colony": "^9.2.0",
     "@colony/sdk": "^2.0.0-next.5",
     "@colony/tokens": "^0.1.3-next.1",
+    "@fastify/static": "^6.10.2",
+    "@fastify/view": "^8.0.0",
     "@prisma/client": "^4.16.2",
     "axios": "^1.4.0",
     "discord.js": "^14.11.0",
@@ -33,6 +42,7 @@
     "fast-glob": "^3.2.12",
     "fastify": "^4.19.2",
     "gpt-3-encoder": "^1.1.4",
+    "handlebars": "^4.7.7",
     "openai": "^3.3.0",
     "prettier": "^2.8.8",
     "remark": "^14.0.3",
@@ -48,7 +58,11 @@
     "@types/remove-markdown": "^0.3.1",
     "@typescript-eslint/eslint-plugin": "^5.59.6",
     "@typescript-eslint/parser": "^5.59.6",
+    "concurrently": "^8.2.0",
+    "cpy-cli": "^5.0.0",
+    "esbuild": "^0.18.13",
     "prisma": "^5.0.0",
+    "tailwindcss": "^3.3.3",
     "ts-node": "^10.9.1",
     "ts-patch": "^3.0.1",
     "typescript": "^5.1.6"

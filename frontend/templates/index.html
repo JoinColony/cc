@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title></title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/index.js" async></script>
+  <link href="/bundle.css" rel="stylesheet">
+</head>
+
+<body class="flex items-center justify-center h-screen bg-purple-1000">
+  <main class="container overflow-hidden mx-auto max-w-2xl md:rounded-lg">
+    <header class="bg-purple-500 p-6 relative md:p-9">
+      <img class="w-44" alt="Colony logo" src="/colony.svg" />
+      <img class="w-20 absolute right-6 bottom-0 translate-y-1/2 md:right-9" alt="Discord logo" src="/discord.svg" />
+    </header>
+    <section class="bg-white p-6 md:p-9">
+      <h1 class="text-xl font-semibold md:text-3xl">
+          Sign transaction for clooney
+      </h1>
+      <h2 class="mt-4 text-sm font-semibold text-blue-400 uppercase md:text-l">
+        clooney needs you to sign &amp; send a transaction
+      </h2>
+      <p class="mt-4">
+        Please double-check the following transaction and click the button to sign it and send it off using your
+        browser-wallet.
+      </p>
+      <pre class="mt-4 whitespace-normal">
+        {{ session.readable }}
+      </pre>
+      <p class="mt-16 text-right">
+        <button id="sendbutton" class="bg-blue-400 text-white rounded-3xl py-3 px-8">
+          Sign &amp; Send
+          </button>
+      </p>
+    </section>
+  </main>
+</body>
+
+</html>

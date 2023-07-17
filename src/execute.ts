@@ -133,7 +133,6 @@ interface FnSchema {
 
 interface TxSchema {
   kind: SchemaKind.Tx;
-  validate: (args: any) => void;
   encode: (args: any) => Promise<TxResult>;
   send: (json: string) => Promise<string>;
 }
@@ -242,10 +241,6 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
   },
   pay: {
     kind: SchemaKind.Tx,
-    validate(args: PayArgs) {
-      const validated = typia.validate(args);
-      handleValidated(validated);
-    },
     async encode(args: PayArgs) {
       const validated = typia.validate(args);
       handleValidated(validated);
@@ -336,7 +331,6 @@ export const execute = async (cmd: string) => {
 
     if (schema.kind === SchemaKind.Tx) {
       try {
-        schema.validate(parsedArgs);
         const result = await schema.encode(parsedArgs);
         const sessionId = await createPendingTx(result);
         return `Transaction successfully created. Please go to this page to sign and send off the transaction: ${CLOONEY_URL}/${sessionId}`;
