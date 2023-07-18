@@ -112,7 +112,7 @@ export const commands = {
           `Apologies, I only support questions with a maximum size of 200 tokens (which are roughly 150 words)`,
         );
       }
-      await interaction.deferReply();
+      await interaction.deferReply({ ephemeral: true });
       try {
         const reply = await execute(command);
         if (!reply) {
