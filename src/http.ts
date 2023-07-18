@@ -61,7 +61,7 @@ export const startServer = () => {
     },
   );
 
-  fastify.listen({ port: PORT }, (err) => {
+  fastify.listen({ host: '0.0.0.0', port: PORT }, (err) => {
     if (err) throw err;
     console.info(`HTTP server running in port ${PORT}`);
   });
