@@ -233,9 +233,9 @@ const SCHEMA_MAP: Record<string, SchemaEntry> = {
       const colony = await colonyNetwork.getColony(colonyAddress);
       const targetAddress = await getTargetAddress(walletAddress);
       const rep = await colony.getReputation(targetAddress, teamId);
-      return `The reputation of ${walletAddress} in team ${
+      return `The reputation of user ${walletAddress} in team ${
         teamId || 'root'
-      } of the Colony ${colonyAddress} is ${rep * 100}%`;
+      } of the Colony ${colonyAddress} is ${(rep * 100).toFixed(3)}%`;
     },
   },
   pay: {
